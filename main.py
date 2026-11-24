@@ -1,36 +1,24 @@
-"""Glyph courier: carries exactly one warm emoji to the output tray."""
+"""One warm emoji, out for delivery.
+
+The cargo is a single code point. The program drops it in the output
+folder, picks it up again, and checks nobody swapped the parcel.
+"""
 import json
 import os
-from pathlib import Path
+
+FACE = "\U0001F917"
+HUGS = 2
 
 
-class Courier:
-    tray_limit = 8
-
-    def __init__(self, source="entry.txt"):
-        self.source = source
-
-    def pick_up(self):
-        return Path(self.source).read_text(encoding="utf-8").strip()
-
-    def inspect(self, glyph):
-        if len(glyph) < 1:
-            raise ValueError("the tray arrived empty")
-        if len(glyph) > Courier.tray_limit:
-            raise ValueError("glyph heavier than 8 characters")
-        return glyph
-
-    def place(self, glyph):
-        tray = Path(os.environ.get("MAKEFUN_OUTPUT_DIR") or "/output")
-        tray.mkdir(parents=True, exist_ok=True)
-        spot = tray / "entry.txt"
-        spot.write_text(glyph + "\n", encoding="utf-8", newline="\n")
-        return spot
+def drop(base):
+    base = base or "output"
+    os.makedirs(base, exist_ok=True)
+    p = os.path.join(base, "entry.txt")
+    open(p, "w", encoding="utf-8", newline="\n").write(FACE)
+    back = open(p, encoding="utf-8").read().strip()
+    assert back == FACE, "parcel swapped in transit"
+    return back
 
 
-if __name__ == "__main__":
-    runner = Courier()
-    glyph = runner.inspect(runner.pick_up())
-    spot = runner.place(glyph)
-    print(json.dumps({"ok": True, "spot": str(spot), "glyph": glyph,
-                      "glyph_chars": len(glyph)}))
+w = drop(os.environ.get("MAKEFUN_OUTPUT_DIR"))
+print(json.dumps({"who": "emo2", "wide": len(w), "hugs": HUGS, "sent": True}))
